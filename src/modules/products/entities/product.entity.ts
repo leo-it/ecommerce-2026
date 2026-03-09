@@ -1,6 +1,7 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
-import { Order } from './order.entity';
+import { Category } from '../../category/entities/category.entity';
+import { OrderItem } from '../../order-item/entities/order-item.entity';
 
 @Entity('products')
 export class Product {
@@ -36,7 +37,10 @@ export class Product {
   @ApiProperty()
   updatedAt: Date;
 
-  @ManyToOne(() => Order)
-  @JoinColumn({ name: 'product_id' })
-  product: Product;
+  @ManyToOne(() => Category)
+  @JoinColumn({ name: 'category_id' })
+  category: Category;
+
+  @OneToMany(() => OrderItem, (orderItem) => orderItem.product)
+  orderItems: OrderItem[];  
 }
