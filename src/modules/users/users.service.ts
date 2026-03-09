@@ -49,4 +49,12 @@ export class UsersService {
       .where('user.email = :email', { email })
       .getOne();
   }
+  
+  async findByIdWithRefreshTokenHash(id: string) {
+    return this.usersRepo
+      .createQueryBuilder('user')
+      .addSelect('user.refreshTokenHash')
+      .where('user.id = :id', { id })
+      .getOne();
+  }
 }
