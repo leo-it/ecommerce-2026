@@ -20,12 +20,17 @@ async function bootstrap() {
   
   // Configuración de Swagger
   const config = new DocumentBuilder()
-    .setTitle('E-commerce API')
-    .setDescription('API para e-commerce escalable con NestJS')
-    .setVersion('1.0')
-    .addTag('products', 'Endpoints relacionados con productos')
-    .build();
-  
+  .setTitle('E-commerce API')
+  .setDescription('API para e-commerce escalable con NestJS')
+  .setVersion('1.0')
+  .addTag('products', 'Endpoints relacionados con productos')
+  .addBearerAuth({
+    type: 'http',
+    scheme: 'bearer',
+    bearerFormat: 'JWT',
+    description: 'Pega aquí el access token',
+  })
+  .build();
   const document = SwaggerModule.createDocument(app, config, {
     extraModels: [], // Aquí se pueden agregar modelos adicionales si es necesario
   });
