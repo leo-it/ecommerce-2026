@@ -34,6 +34,14 @@ export class ProductResponseDto {
   stock: number;
 
   @ApiProperty({
+    description: 'ID del vendedor dueño del producto',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    required: false,
+    nullable: true,
+  })
+  ownerId: string | null;
+
+  @ApiProperty({
     description: 'ID de la categoría',
     example: '123e4567-e89b-12d3-a456-426614174000',
     format: 'uuid',

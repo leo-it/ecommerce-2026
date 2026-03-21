@@ -11,8 +11,13 @@ import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import type { StringValue } from 'ms';
+import { Role } from './enums/role.enum';
+import type { AuthJwtPayload } from './types/auth.types';
 
-type AuthTokens = { accessToken: string; refreshToken: string };
+type AuthTokens = {
+  accessToken: string;
+  refreshToken: string;
+};
 
 @Injectable()
 export class AuthService {
@@ -50,13 +55,30 @@ export class AuthService {
   }
 
   async refresh(dto: RefreshTokenDto): Promise<AuthTokens> {
-    const user = await this.usersService.findByIdWithRefreshTokenHash(dto.userId);
+    const refreshSecret = this.configService.getOrThrow<string>('JWT_REFRESH_SECRET');
+
+    let payload: AuthJwtPayload;
+    try {
+      payload = await this.jwtService.verifyAsync<AuthJwtPayload>(dto.refreshToken, {
+        secret: refreshSecret,
+      });
+    } catch {
+      throw new UnauthorizedException('Refresh token inválido');
+    }
+
+    if (!payload?.sub || payload.tokenType !== 'refresh') {
+      throw new UnauthorizedException('Refresh token inválido');
+    }
+
+    const user = await this.usersService.findByIdWithRefreshTokenHash(payload.sub);
     if (!user?.refreshTokenHash) {
       throw new UnauthorizedException('Refresh token inválido');
     }
 
     const matches = await bcrypt.compare(dto.refreshToken, user.refreshTokenHash);
-    if (!matches) throw new UnauthorizedException('Refresh token inválido');
+    if (!matches) {
+      throw new UnauthorizedException('Refresh token inválido');
+    }
 
     return this.issueTokens(user.id, user.email, user.role);
   }
@@ -66,8 +88,8 @@ export class AuthService {
     return { success: true };
   }
 
-  private async issueTokens(userId: string, email: string, role: string): Promise<AuthTokens> {
-    const accessSecret = this.configService.getOrThrow<string>('JWT_ACCESS_SECRET');
+  private async issueTokens(userId: string, email: string, role: Role): Promise<AuthTokens>{
+  const accessSecret = this.configService.getOrThrow<string>('JWT_ACCESS_SECRET');
     const refreshSecret = this.configService.getOrThrow<string>('JWT_REFRESH_SECRET');
     const accessExpiresIn = this.configService.get<string>('JWT_ACCESS_EXPIRES_IN') ?? '15m';
     const refreshExpiresIn = this.configService.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '7d';
@@ -80,12 +102,13 @@ export class AuthService {
       expiresIn: refreshExpiresIn as StringValue,
     };
 
-    const payload = { sub: userId, email, role };
-
+    const accessPayload: AuthJwtPayload = { sub: userId, email, role, tokenType: 'access' };
+    const refreshPayload: AuthJwtPayload = { sub: userId, email, role, tokenType: 'refresh' };
     const [accessToken, refreshToken] = await Promise.all([
-      this.jwtService.signAsync(payload, accessOptions),
-      this.jwtService.signAsync(payload, refreshOptions),
+      this.jwtService.signAsync(accessPayload, accessOptions),
+      this.jwtService.signAsync(refreshPayload, refreshOptions),
     ]);
+
 
 
     const refreshTokenHash = await this.hashValue(refreshToken);
@@ -99,7 +122,7 @@ export class AuthService {
     return bcrypt.hash(value, rounds);
   }
 
-  private toPublicUser(user: { id: string; email: string; role: string }) {
+  private toPublicUser(user: { id: string; email: string; role: Role }) {
     return { id: user.id, email: user.email, role: user.role };
   }
 }

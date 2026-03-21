@@ -2,6 +2,7 @@ import { Injectable, ConflictException, NotFoundException } from '@nestjs/common
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
+import { Role } from '../auth/enums/role.enum';
 
 @Injectable()
 export class UsersService {
@@ -10,16 +11,17 @@ export class UsersService {
     private readonly usersRepo: Repository<User>,
   ) {}
 
-  async createUser(params: { email: string; passwordHash: string; role?: string }) {
+  async createUser(params: { email: string; passwordHash: string; role?: Role }) {
     const existing = await this.usersRepo.findOne({ where: { email: params.email } });
     if (existing) throw new ConflictException('Email ya registrado');
 
     const user = this.usersRepo.create({
       email: params.email,
       passwordHash: params.passwordHash,
-      role: params.role ?? 'customer',
+      role: params.role ?? Role.CUSTOMER,
       refreshTokenHash: null,
     });
+  
 
     return this.usersRepo.save(user);
   }

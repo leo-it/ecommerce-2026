@@ -2,12 +2,20 @@ import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, CreateDa
 import { ApiProperty } from '@nestjs/swagger';
 import { Category } from '../../category/entities/category.entity';
 import { OrderItem } from '../../order-item/entities/order-item.entity';
+import { User } from '../../users/entities/user.entity';
 
 @Entity('products')
 export class Product {
   @PrimaryGeneratedColumn('uuid')
   @ApiProperty()
   id: string;
+
+  @Column({ name: 'owner_id', type: 'uuid', nullable: true })
+ownerId: string | null;
+
+@ManyToOne(() => User, { nullable: true })
+@JoinColumn({ name: 'owner_id' })
+owner: User | null;
 
   @Column()
   @ApiProperty()

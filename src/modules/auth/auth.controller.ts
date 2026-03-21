@@ -1,10 +1,4 @@
-import {
-  Controller,
-  Post,
-  Body,
-  UseGuards,
-  Request,
-} from '@nestjs/common';
+import { Controller, Post, Body, UseGuards } from '@nestjs/common';
 import {
   ApiBody,
   ApiHeader,
@@ -17,14 +11,8 @@ import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-
-type AuthRequest = Request & {
-  user: {
-    userId: string;
-    email: string;
-    role: string;
-  };
-};
+import { CurrentUser } from './decorators/current-user.decorator';
+import type { AuthenticatedUser } from './types/auth.types';
 
 @Controller('auth')
 @ApiTags('Auth')
@@ -48,7 +36,7 @@ export class AuthController {
   @Post('refresh')
   @ApiOperation({
     summary: 'Rotar access y refresh token',
-    description: 'No requiere Bearer token. Debes enviar userId y refreshToken en el body.',
+    description: 'No requiere Bearer token. Debes enviar únicamente refreshToken en el body.',
   })
   @ApiBody({ type: RefreshTokenDto })
   refresh(@Body() dto: RefreshTokenDto) {
@@ -67,7 +55,7 @@ export class AuthController {
     summary: 'Cerrar sesión (invalida refresh token)',
     description: 'Envía el access token en Authorization: Bearer <token>.',
   })
-  logout(@Request() req: AuthRequest) {
-    return this.authService.logout(req.user.userId);
+  logout(@CurrentUser() user: AuthenticatedUser) {
+    return this.authService.logout(user.userId);
   }
 }
